@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>A simple fat scatter</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<style>
+
+    body {
+      font-size: 13px;
+      font-family: Georgia;
+    }
+
+
+    /* start style for flexbox lay out */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      direction: ltr;
+    }
+
+
+    /* header */
+
+    header {
+      width: 100%;
+      height: 100px;
+      color: #313131;
+      text-align: center;
+      font-family: Georgia;
+    }
+
+    header span {
+      font-size: 3.5em;
+      display: block;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+
+    /* content */
+
+    #content {
+      overflow: hidden;
+      margin: 10px 10px auto;
+      padding: 10px;
+      background: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      /* margin-bottom: 50px;*/
+      max-width: 1300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+
+    /* main wrapper */
+
+    section.main-wrapper {
+      width: 69%;
+      min-width: 250px;
+      padding: 10px;
+      background-color: #fff;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+
+    /* aside */
+
+    aside {
+      width: 28%;
+      min-width: 250px;
+      /*height: 800px;*/
+      background: #fff;
+      color: #313131;
+      padding: 20px;
+    }
+
+    aside p {
+      font-size: 13px;
+    }
+
+    aside p a {
+      color: orangered;
+    }
+
+
+    /* grid-post */
+
+    .grid-post {
+      width: 200px;
+      height: 250px;
+      background: #d00000;
+      margin: 5px;
+    }
+
+
+    /* footer */
+
+    footer {
+      width: 100%;
+      height: 300px;
+      padding: 20px;
+      font-size: 1.25em;
+    }
+
+    footer p a {
+      color: #980043;
+    }
+
+    .svg-container {
+      display: inline-block;
+      position: relative;
+      width: 100%;
+      padding-bottom: 62%;
+      /* aspect ratio */
+      vertical-align: top;
+      overflow: hidden;
+    }
+
+    .svg-content-responsive {
+      display: inline-block;
+      position: absolute;
+      top: 10px;
+      left: 0;
+      padding-bottom: 8%;
+      /*max-width: 750px;*/
+      border: auto;
+    }
+
+    .axis,
+    .tick {
+      fill: #313131;
+      font-size: .7em;
+      font-family: Georgia;
+    }
+
+    .y .label {
+      font-size: 1.3em;
+      fill: #980043;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .dot,
+    .dot2 {
+      -webkit-transition: stroke-width 2s;
+      /* For Safari 3.1 to 6.0 */
+      transition: stroke-width 2s;
+    }
+
+    .dot:hover {
+      stroke: #FFBD21;
+      stroke-width: 2px;
+    }
+
+    .dot2 {
+      /*stroke: orangered;*/
+    }
+
+    .dot2:hover {
+      stroke: orangered;
+      stroke-width: 2px;
+    }
+
+    .d3-tip {
+      line-height: 1;
+      font: 14px sans-serif;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: rgb(185, 185, 185);
+      border-radius: 2px;
+    }
+
+
+    /* Creates a small triangle extender for the tooltip */
+
+    .d3-tip:after {
+      box-sizing: border-box;
+      display: inline;
+      font-size: 10px;
+      width: 100%;
+      line-height: 1;
+      color: rgba(0, 0, 0, 0.8);
+      content: "\25BC";
+      position: absolute;
+      text-align: center;
+    }
+
+
+    /* Style northward tooltips differently */
+
+    .d3-tip.n:after {
+      margin: -1px 0 0 0;
+      top: 100%;
+      left: 0;
+    }
+
+    div.tooltip {
+      line-height: 1;
+      padding: 12px;
+      background: rgba(67, 67, 67, 0.8);
+      color: rgb(185, 185, 185);
+      border-radius: 12px;
+      position: absolute;
+      text-align: center;
+      /*width: 60px;          */
+      /*height: 28px;         */
+      padding: 2px;
+      font: 12px sans-serif;
+      border: 0px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+
+    /* Creates a small triangle extender for the tooltip */
+
+
+    /* div.tooltip:after {
+          box-sizing: border-box;
+          display: inline;
+          font-size: 10px;
+          width: 100%;
+          line-height: 1;
+          color: rgba(67, 67, 67, 0.8);
+          content: "\25BC";
+          position: relative;
+          top: 15px;
+          text-align: center;
+        }*/
+
+    @media only screen and (max-width: 846px) {
+      aside {
+        width: 100%;
+      }
+      section.main-wrapper {
+        width: 100%;
+      }
+      .label,
+      .axis {
+        font-size: .7em;
+      }
+    }
+
+    @media only screen and (max-width: 360px) {
+      .label,
+      .axis {
+        font-size: 10px;
+      }
+    }
+
+    @media only screen and (min-device-width: 481px) and (max-device-width: 846px) and (orientation:landscape) {
+      /*@media screen and (orientation: landscape) {
+            */
+      /* aside */
+      /* aside {
+                width: 100%;
+                min-width: 250px;
+                height: 800px;
+                background:#313131;
+                color: #FFF;
+                padding: 20px;
+            }*/
+    }
+</style>
+<body>
+
+ <header><span>Saturated Fat and Health</span></header>
+ <div id="content">
+    <section class="main-wrapper" id="chartResponsive">
+    </section>
+    <aside>
+       <h2>The theory goes something like this.</h2>
+       <br>
+       <h2>Eat saturated fat and you increase the risk of having heart disease.</h2>
+       <br>
+       <h2>But a large chunk of data seems to point to the opposite phenomena.</h2>
+       <br>
+       <h2>That is, the more saturated fat the lower the risk of mortality from coronary heart disease, stroke and other cardiovascular diseases.</h2>
+       <br>
+       <h2>
+       Seems stranger than fiction.
+       <h2>
+    </aside>
+ </div>
+ <footer>
+    <p>The data comes from:</p>
+    <br>
+    <p>The World Health Organization: <a href="http://apps.who.int/gho/data/node.main.A859?lang=en">Mortality, cholesterol statistics</a>.</p>
+    <p>Oxford University's Department of Public Health:<a href="https://www.escardio.org/static_file/Escardio/Press-media/press-releases/2013/EU-cardiovascular-disease-statistics-2012.pdf">European cardiovascular disease statistics</a>.</p>
+ </footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+
+<script>
+
+// Set the dimensions of the canvas / graph
+var margin = {top: 30, right: 20, bottom: 30, left: 50},
+  width = 400 - margin.left - margin.right,
+  height = 220 - margin.top - margin.bottom;
+
+// Parse the date / time
+var parseDate = d3.time.format("%d-%b-%y").parse;
+
+// Set the ranges
+var x = d3.scale.linear()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var r = d3.scale.linear()
+    .range([7, 18]);
+
+// Define the axes
+var xAxis = d3.svg.axis().scale(x)
+  .orient("bottom").ticks(5);
+
+var yAxis = d3.svg.axis().scale(y)
+  .orient("left").ticks(5);
+
+    // Define the div for the tooltip
+var div = d3.select("body").append("div") 
+    .attr("class", "tooltip")       
+    .style("opacity", 0);
+
+// Define the line
+var valueline1 = d3.svg.line()
+  .x(function(d) { return x(d.Percent_total_energy_from_saturated_fat); })
+  .y(function(d) { return y(d.CHD); });
+
+var valueline2 = d3.svg.line()
+  .x(function(d) { return x(d.date); })
+  .y(function(d) { return y(d.close); });
+
+  // Get the data
+d3.tsv("Saturated_Euro_cholesterol_CHD_Stroke_Cancer_null.tsv", function(error, data) {
+  if (error) throw error;
+
+    data.forEach(function(d) {
+      d.Percent_total_energy_from_saturated_fat = +d.Percent_total_energy_from_saturated_fat;
+      d.CHD = +d.CHD;
+      d.Stroke = +d.Stroke;
+      d.CancerMortality2012 = +d.CancerMortality2012;
+      d.cholesterolWomen2002 = +d.cholesterolWomen2002;
+      d.cholesterolWomen2005 = +d.cholesterolWomen2005;
+      d.cholesterolWomen2010 = +d.cholesterolWomen2010;
+      d.cholesterolMen2002 = +d.cholesterolMen2002;
+      d.cholesterolMen2005 = +d.cholesterolMen2005;
+      d.cholesterolMen2010 = +d.cholesterolMen2010;
+
+  });
+
+//Cholor scheme
+const colorPalette = ['#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+
+
+//Responsive SVG
+// 1 https://stackoverflow.com/questions/16265123/resize-svg-when-window-is-resized-in-d3-js?noredirect=1&lq=1
+// 2 https://blog.webkid.io/responsive-chart-usability-d3/
+var chart1 = d3.select("#chartResponsive")
+   .append("div")
+   .classed("svg-container", true) //container class to make it responsive
+   .append("svg")
+   //responsive SVG needs these 2 attributes and no width and height attr
+   .attr("preserveAspectRatio", "xMinYMin meet")
+   .attr("viewBox", "0 0 400 200")
+   //class to make it responsive
+   .classed("svg-content-responsive", true)
+   .attr("id", "first")
+   .append('g')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Scale the range of the data
+  x.domain(d3.extent(data, function(d) { return d.Percent_total_energy_from_saturated_fat; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.CHD; })).nice();
+  r.domain(d3.extent (data, function (d)  {return d.CHD;}));
+
+
+// Add the X Axis
+  chart1.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis)
+  .append("text")
+    .attr("class", "label")
+    .attr("x", width)
+    .attr("y", 36)
+    .style("text-anchor", "end")
+    .text("% Calories From Saturated Fat");
+
+// Add the Y Axis
+  chart1.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("y", -26)
+      .attr("x", width/2)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("CHD incidence per 100,000 people")
+
+  chart1.selectAll(".dot")
+      .data(data)
+      .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r", function(d) {return r(d.CHD)})
+      .attr("cx", function(d) { return x(d.Percent_total_energy_from_saturated_fat); })
+      .attr("cy", function(d) { return y(d.CHD); })
+      .style("fill", "#c994c7")
+      .style("opacity", .8)
+      // .on('mouseover', tip.show)
+      // .on('mouseout', tip.hide);
+      .on("mouseover", function(d) {    
+          div.transition()    
+              .duration(200)    
+              .style("opacity", .9);    
+          div.html("<div><span>Country:</span> <span style='color:white'>" + d.Country + "</span></div>" + "<div><span>Saturated Fat%:</span> <span style='color:white'>" + d.Percent_total_energy_from_saturated_fat + "</span></div>" + "<div><span>Total Strokes:</span> <span style='color:white'>" + d.CHD + "</span></div>") 
+              .style("left", (d3.event.pageX - 50) + "px")   
+              .style("top", (d3.event.pageY - 50) + "px");  
+          })          
+      .on("mouseout", function(d) {   
+          div.transition()    
+              .duration(500)    
+              .style("opacity", 0); 
+      });
+      
+// }); //end tsv data function
+
+//begin chart2
+
+//chart 2 begin
+var chart2 = d3.select("#chartResponsive")
+   .append("div")
+   .classed("svg-container", true) //container class to make it responsive
+   .append("svg")
+   //responsive SVG needs these 2 attributes and no width and height attr
+   .attr("preserveAspectRatio", "xMinYMin meet")
+   .attr("viewBox", "0 0 400 200")
+   //class to make it responsive
+   .classed("svg-content-responsive", true)
+   .attr("id", "second")
+   .append('g')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  // Scale the range of the data
+  x.domain(d3.extent(data, function(d) { return d.Percent_total_energy_from_saturated_fat; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.CHD; })).nice();
+  // r.domain(d3.extent (subset, function (d)  {return d.CHD;}));
+  r.domain(d3.extent (data, function (d)  {return d.CHD;}));
+
+ // Add the X Axis
+   chart2.append("g")
+     .attr("class", "x axis")
+     .attr("transform", "translate(0," + height + ")")
+     .call(xAxis)
+   .append("text")
+     .attr("class", "label")
+     .attr("x", width)
+     .attr("y", 36)
+     .style("text-anchor", "end")
+     .text("% Calories From Saturated Fat");
+
+ // Add the Y Axis
+   chart2.append("g")
+       .attr("class", "y axis")
+       .call(yAxis)
+     .append("text")
+       .attr("class", "label")
+       .attr("y", -26)
+       .attr("x", width/2)
+       .attr("dy", ".71em")
+       .style("text-anchor", "end")
+       .html("Stroke incidence" + "<br>" + "per 100,000 people");
+       
+
+
+    chart2.selectAll(".dot2")
+        .data(data)
+        .enter().append("circle")
+        .attr("class", "dot2")
+        .attr("r", function(d) {return r(d.Stroke)})
+        .attr("cx", function(d) { return x(d.Percent_total_energy_from_saturated_fat); })
+        .attr("cy", function(d) { return y(d.Stroke); })
+        // .style("fill", function(d) { return color(d.CHD); })
+        .style("fill", "#ce1256")
+        .style("opacity", .8)
+        // .on('mouseover', tip2.show)
+        // .on('mouseout', tip2.hide);
+        .on("mouseover", function(d) {    
+            div.transition()    
+                .duration(200)    
+                .style("opacity", .9);    
+            div .html("<div><span>Country:</span> <span style='color:white'>" + d.Country + "</span></div>" + "<div><span>Saturated Fat%:</span> <span style='color:white'>" + d.Percent_total_energy_from_saturated_fat + "</span></div>" + "<div><span>Total Strokes:</span> <span style='color:white'>" + d.Stroke + "</span></div>") 
+                .style("left", (d3.event.pageX - 50) + "px")   
+                .style("top", (d3.event.pageY - 50) + "px");  
+            })          
+        .on("mouseout", function(d) {   
+            div.transition()    
+                .duration(500)    
+                .style("opacity", 0); 
+        });
+        //end chart2
+
+// begin chart3
+  var chart3 = d3.select("#chartResponsive")
+     .append("div")
+     .classed("svg-container", true) //container class to make it responsive
+     .append("svg")
+     //responsive SVG needs these 2 attributes and no width and height attr
+     .attr("preserveAspectRatio", "xMinYMin meet")
+     .attr("viewBox", "0 0 400 200")
+     //class to make it responsive
+     .classed("svg-content-responsive", true)
+     .attr("id", "third")
+     .append('g')
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.cholesterolWomen2010; })).nice();
+    y.domain(d3.extent(data, function(d) { return d.CHD; })).nice();
+    // r.domain(d3.extent (subset, function (d)  {return d.CHD;}));
+    r.domain(d3.extent (data, function (d)  {return d.CHD; }));
+
+
+  // Add the X Axis
+    chart3.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", 36)
+      .style("text-anchor", "end")
+      .text("Mean Cholesterol Levels");
+
+  // Add the Y Axis
+    chart3.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      .append("text")
+        .attr("class", "label")
+        .attr("y", -26)
+        .attr("x", width/2)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("CHD incidence per 100,000 people")
+
+    chart3.selectAll(".dot")
+        .data(data)
+        .enter().append("circle")
+        .attr("class", "dot")
+        .attr("r", function(d) {return r(d.cholesterolWomen2010)})
+        // .attr("r", function(d) { return d == null ? 0 : 13; })
+        .attr("cx", function(d) { return x(d.cholesterolWomen2010); })
+        .attr("cy", function(d) { return y(d.CHD); })
+        
+        .style("fill", "#df65b0")
+        .style("opacity", .8)
+        .style("display", function(d) { return d == null ? "none" : null; })
+        .on("mouseover", function(d) {    
+            div.transition()    
+                .duration(200)    
+                .style("opacity", .9);    
+            div .html("<div><span>Country:</span> <span style='color:white'>" + d.Country + "</span></div>" + "<div><span>Cholesterol Women:</span> <span style='color:white'>" + d.cholesterolWomen2010 + " mmol/L" + "</span></div>" + "<div><span style='color:white'>" + d.cholesterolWomen2010mg + " mg/dl" + "</span></div>" + "<div><span>CHD:</span> <span style='color:white'>" + d.CHD + "</span></div>") 
+                .style("left", (d3.event.pageX - 50) + "px")   
+                .style("top", (d3.event.pageY - 50) + "px");  
+            })          
+        .on("mouseout", function(d) {   
+            div.transition()    
+                .duration(500)    
+                .style("opacity", 0); 
+        });
+    //end chart3
+});
+
+
+</script>

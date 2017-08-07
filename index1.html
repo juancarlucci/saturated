@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+      body {
+        text-align: center;
+        color: lightBlue;
+        font-family: Roboto;
+      }
+      /* header */
+      header {
+          width: 100%;
+          height: 100px;
+          /*color: #313131;*/
+          text-align: center;
+          font-family: Georgia;
+
+      }
+
+      header span {
+        font-size: 3.5em;
+        display: block;
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      /* content */
+      #content {
+          overflow: hidden;
+          margin: 10px 10px auto;
+          padding: 10px;
+          background: #fff;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-around;
+         /* margin-bottom: 50px;*/
+          max-width: 1300px;
+          margin-left: auto;
+          margin-right: auto;
+      }
+
+      /* main wrapper */
+
+      section.main-wrapper {
+          width: 69%;
+          min-width: 250px;
+          padding: 10px;
+          background-color:#fff;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          
+      }
+      /* aside */
+      aside {
+          width: 23%;
+          min-width: 250px;
+          /*height: 800px;*/
+          background:#fff;
+          /*color: #313131;*/
+          padding: 20px;
+      }
+
+      aside p {
+        font-size: 13px;
+      }
+      aside p a{
+        color: orangered;
+      } 
+      circle {
+        fill: orange;
+        stroke: orangered;
+        /*stroke-width: 0.7;*/
+        opacity: 0.7;
+      }
+      .cirlce2 {
+        /*fill: blue;*/
+        /*stroke: green;*/
+        /*stroke-width: 0.7;*/
+        opacity: 0.7;
+      }
+
+      div.years_buttons {
+          position: absolute;
+          display: flex;
+          flex-wrap: wrap;
+          top: 48%;
+          /*left: 20px;*/
+          /*bottom:0;*/
+          overflow-y:scroll;
+          overflow-x:hidden;
+          max-width: 1111px;
+          left: 50%;
+          margin-right: -50%;
+          transform: translate(-50%, -50%)
+      }
+
+      div.years_buttons div {
+          background-color: orange;
+          color: white;
+          padding: 3px;
+          margin: 7px;
+          border-radius: 5px;
+          
+      }
+      div.years_buttons div:hover {
+          /*background-color: orange;*/
+          color: lightblue;
+         
+      }
+
+      .svg-container {
+          display: inline-block;
+          position: relative;
+          width: 100%;
+          /*max-width: 1111px;*/
+          padding-bottom: 100%; /* aspect ratio */
+          vertical-align: top;
+          overflow: hidden;
+      }
+      .svg-content-responsive {
+          display: inline-block;
+          position: absolute;
+          top: 10px;
+          left: 0;
+          /*max-width: 1111px;*/
+      }
+      
+      @media only screen and (max-width: 660px) {
+        div.years_buttons {
+            top: 56%;
+        }
+          
+      }
+    </style>
+    <script type="text/javascript">  
+      function draw(geo_data) {
+        "use strict";
+        var margin = 75,
+            width = 1400 - margin,
+            height = 600 - margin;
+
+
+        // var svg = d3.select("body")
+        //     .append("svg")
+        //     .attr("width", width + margin)
+        //     .attr("height", height + margin)
+        //     .append('g')
+        //     .attr('class', 'map');
+
+        //Responsive SVG
+        //1 https://stackoverflow.com/questions/16265123/resize-svg-when-window-is-resized-in-d3-js?noredirect=1&lq=1
+        //2 https://blog.webkid.io/responsive-chart-usability-d3/
+        var svg = d3.select("#chartResponsive")
+        // d3.select("div#chartId")
+           .append("div")
+           .classed("svg-container", true) //container class to make it responsive
+           .append("svg")
+           //responsive SVG needs these 2 attributes and no width and height attr
+           .attr("preserveAspectRatio", "xMinYMin meet")
+           .attr("viewBox", "0 0 1400 600")
+           //class to make it responsive
+           .classed("svg-content-responsive", true)
+           .append('g')
+           .attr('class', 'map');     
+
+        var years = [];
+    
+
+          for (var i = 1930; i < 2015; i +=4) {
+            if(i !== 1942 && i !== 1946) {
+              years.push(i);
+            };
+          }
+
+        var projection = d3.geo.mercator()
+                               .scale(140)
+                               .translate([width / 2, height / 1.2]);
+
+        var path = d3.geo.path().projection(projection);
+
+        var map = svg.selectAll('path')
+                     .data(geo_data.features)
+                     .enter()
+                     .append('path')
+                     .attr('d', path)
+                     .style('fill', 'lightBlue')
+                     .style('stroke', 'orangered')
+                     .style('stroke-width', 0.5);
+
+        function plot_points(data) {
+            
+            function agg_year(leaves) {
+                var total = d3.sum(leaves, function(d) {
+                    return d['attendance'];
+                });
+
+                var coords = leaves.map(function(d) {
+                    return projection([+d.long, +d.lat]);
+                });
+
+                var center_x = d3.mean(coords, function(d) {
+                    return d[0];
+                });
+
+                var center_y = d3.mean(coords, function(d) {
+                    return d[1];
+                });
+
+                var filtered = leaves.filter(function(d) {
+                   return d.stage == "FINAL ROUND"; 
+                });
+
+                var winningTeam = filtered.map(function(d) {
+                    return d['team1'];
+                });
+
+                var teams = d3.set();
+
+                leaves.forEach(function(d) {
+                    teams.add(d['team1']);
+                    teams.add(d['team2']);
+                });
+
+                return {
+                  'winningTeam'  : winningTeam,
+                  'attendance' : total,
+                  'x' : center_x,
+                  'y' : center_y,
+                  'teams' : teams.values()
+                };
+            }
+
+            var nested = d3.nest()
+                           .key(function(d) {
+                              return d['date'].getUTCFullYear();
+                           })
+                           .rollup(agg_year)
+                           .entries(data);
+
+            var attendance_max = d3.max(nested, function(d) {
+                return d.values['attendance'];
+            });
+
+            var radius = d3.scale.sqrt()
+                           .domain([0, attendance_max])
+                           .range([0, 15]);
+
+            var cirlceStroke = d3.scale.sqrt()
+                           .domain([0, attendance_max])
+                           .range([0, 5]);
+
+            function key_func(d) {
+                return d['key'];
+            }
+
+            svg.append('g')
+               .attr("class", "bubble")
+               .selectAll("circle")
+               .data(nested.sort(function(a, b) { 
+                  return b.values['attendance'] - a.values['attendance'];
+               }), key_func)
+               .enter()
+               .append("circle")
+               .attr('cx', function(d) { return d.values['x']; })
+               .attr('cy', function(d) { return d.values['y']; })
+               .attr('r', function(d) { return radius(d.values['attendance']);
+               })
+
+
+          function update(year) {
+              var filtered = nested.filter(function(d) {
+                  return new Date(d['key']).getUTCFullYear() === year;
+              });
+
+              // d3.select("h2")
+              //   .text("Copa Mundial " + year + countries);
+
+              var circles = svg.selectAll('circle')
+                               .data(filtered, key_func);
+
+              circles.exit().remove();
+
+              circles.enter()
+                     .append("circle")
+                     .transition()
+                     .duration(400)
+                     .attr('cx', function(d) { return d.values['x']; })
+                     .attr('cy', function(d) { return d.values['y']; })
+                     .attr('r', function(d) {
+                        return radius(d.values['attendance']);
+                     })
+                     .style('stroke-width', function(d) {
+                          return cirlceStroke(d.values['attendance']);
+                     });
+                     
+              //countries in an array of strings of names
+              var countries = filtered[0].values['teams'];
+              // console.log(countries);
+              var winner = filtered[0].values['winningTeam'];
+              console.log(winner);
+
+              d3.select("header")
+                .html("Copa Mundial " + year  
+                      + '<br/>'+ "Ganador: " + winner
+                      );
+
+              d3.select("aside")
+                .html("Participating countries" + year  
+                      + '<br/>'+ "Paises: " + countries
+                      );
+
+              //(d) is the geojson for path. there is a path for every country. (d) has properties
+              function update_countries(d) {
+                  if(countries.indexOf(d.properties.name) !== -1) {
+                      return "lightBlue";
+                  } else {
+                      return 'lightgrey';
+                  }
+              }
+              // console.log(filtered[0].values['teams'][0]);
+              // console.log(filtered[0].values['teams'][1]);
+
+              //every path had a geojson attached
+              svg.selectAll('path')
+                .transition()
+                .duration(400)
+                .style('fill', update_countries)
+                .style('stroke', update_countries)
+                .style('stroke', 'orangered')
+                .style('stroke-width', 0.25);
+
+          }; //end function update
+
+
+        //Year Buttons
+          var year_idx = 0;
+
+          var year_interval = setInterval (function() {
+            update(years[year_idx]);
+
+            year_idx++;
+            console.log(years[year_idx]);
+
+            if(year_idx >= years.length) {
+              clearInterval(year_interval);
+
+               var buttons = d3.select(".svg-container")
+                        .append("div")
+                        .attr("class", "years_buttons")
+                        .selectAll("div")
+                        .data(years)
+                        .enter()
+                        .append("div")
+                        .text(function(d) {
+                            return d;
+                        });
+
+                buttons.on("click", function(d) {
+                    d3.select(".years_buttons")
+                      .selectAll("div")
+                      .transition()
+                      .duration(400)
+                      .style("color", "white")
+                      .style("background", "orange");
+
+
+                  d3.select(this)
+                    .transition()
+                    .duration(400)
+                    .style('background', "lightBlue")
+                    .style('color', 'white');
+                  update(d);
+
+                });
+            }
+
+
+          }, 100); //end year buttons
+
+          //Chart
+
+          /*
+            D3.js setup code
+          */
+
+          //     "use strict";
+          //     var margin2 = 75,
+          //         width2 = 900 - margin2,
+          //         height2 = 400 - margin2;
+
+          //     var radius2 = 3;
+          //     var color = "lightblue";
+
+          //     var svg2 = d3.select("body") 
+          //     // var svg = d3.select(".svg-container")
+          //       .append("svg")
+          //         .attr("width", width2 + margin2)
+          //         .attr("height", height2 + margin2)
+          //       .append('g')
+          //           .attr('class','chart');
+
+          // /*
+          //  Chart construction code
+          // */
+
+          //     d3.select("svg2")
+          //       .selectAll("circle")
+          //       .data(data)
+          //       .enter()
+          //       .append("circle")
+          //       .attr('class','cirlce2');
+
+          //     // Find range of date column
+          //     var time_extent = d3.extent(data, function(d) {
+          //         return d['date'];
+          //     });
+
+          //     // Find range of attendance column
+          //     var count_extent = d3.extent(data, function(d) {
+          //         return d['attendance'];
+          //     })
+
+          //     // Create x-axis scale mapping dates -> pixels
+          //     var time_scale = d3.time.scale()
+          //       .range([margin2, width2])
+          //       .domain(time_extent);
+
+          //     // Create y-axis scale mapping attendance -> pixels
+          //     var count_scale = d3.scale.linear()
+          //       .range([height2, margin2])
+          //       .domain(count_extent);
+
+          //     var time_axis = d3.svg.axis()
+          //       .scale(time_scale)
+          //       .ticks(d3.time.years, 2);
+
+          //     var count_axis = d3.svg.axis()
+          //       .scale(count_scale)
+          //       .orient("left");
+
+          //     d3.select("svg2")
+          //       .append("g")
+          //       .attr("class", "x axis")
+          //       .attr("transform", "translate(0," + height2 + ")")
+          //       .call(time_axis);
+
+          //     d3.select("svg2")
+          //       .append("g")
+          //       .attr("class", "y axis")
+          //       .attr("transform", "translate(" + margin2 + ",0)")
+          //       .call(count_axis);
+
+          //     // debugger;
+
+          //     d3.selectAll(".circle2")
+          //       .attr("cx", function(d) {
+          //           // debugger;
+          //           return time_scale(d["date"]);
+          //       })
+          //       .attr("cy", function(d) {
+          //           return count_scale(d["attendance"]);
+          //       })
+          //       .attr("r", radius2)
+          //       .attr("r", function(d) {
+          //             return is_home_game(d) ? "7" : "3";
+          //         })
+          //       // .attr("fill", color);
+          //       .attr("fill", function(d) {
+          //             return is_home_game(d) ? "orange" : "lightblue";
+          //         });
+
+
+          //       function is_home_game(d) {
+          //             return ((d.team1 == d.home)||(d.team2 == d.home));
+          //           };
+
+          //       //legend
+          //       var legend = svg2.append("g")
+          //           .attr("class", "legend")
+          //           .attr("transform", "translate(" + (width2 - 100) + "," + 20 + ")")
+          //           .selectAll("g")
+          //           .data(["Home Team", "Others"])
+          //           .enter().append("g");
+
+          //         legend.append('circle')
+          //           .attr('cy', function (d, i) {
+          //             return i * 30;
+          //           })
+          //           .attr("r", function(d) {
+          //               if (d == "Home Team") {
+          //                   return radius2 * 2;
+          //               } else {
+          //                   return radius2;
+          //               }
+          //             })
+          //           .attr("fill", function(d) {
+          //               if (d == "Home Team") {
+          //                   return 'orange';
+          //               } else {
+          //                   return 'lightblue';
+          //               }
+          //             })
+          //           .attr('class','cirlce2');
+
+          //         legend.append("text")
+          //             .attr("y", function(d, i) {
+          //                 return i * 30 + 5;
+          //             })
+          //             .attr("x", radius2 * 5)
+          //             .text(function(d) {
+          //                 return d;
+          //             });
+     
+
+
+
+
+
+
+      } //end function draw
+
+      var format = d3.time.format("%d-%m-%Y (%H:%M h)");
+
+      d3.tsv("world_cup_geo.tsv", function(d) {
+        d['attendance'] = +d['attendance'];
+        d['date'] = format.parse(d['date']);
+        return d;
+      }, plot_points);
+    };
+    </script>
+  </head>
+<body>
+  <header><span></span></header>
+         <div id="content">
+             <section class="main-wrapper" id="chartResponsive">
+         
+             </section>
+
+      <aside></aside>
+      </div> <!-- end content -->
+
+         <footer><p>The data comes from:</p>
+         <br>
+         <p>The World Health Organization: <a href="http://apps.who.int/gho/data/node.main.A859?lang=en">Mortality, cholesterol statistics</a>.</p> 
+         <p>Oxford University's Department of Public Health:<a href="https://www.escardio.org/static_file/Escardio/Press-media/press-releases/2013/EU-cardiovascular-disease-statistics-2012.pdf">European cardiovascular disease statistics</a>.</p>
+      </footer>
+
+
+  <script type="text/javascript">
+  /*
+    Use D3 to load the GeoJSON file
+    */
+    
+d3.json("world_countries.json", draw);
+  </script>
+ 
+</body>
+</html>
